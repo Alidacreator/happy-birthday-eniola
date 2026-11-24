@@ -10,6 +10,10 @@
 
 body { background: #000000; color: var(--text-main); overflow-x: hidden; }
 
+/* Reset native button styling (cards, thumbnails, etc. are <button>s now) */
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; text-align: inherit; }
+button:focus-visible { outline: 2px solid var(--primary-blue); outline-offset: 3px; }
+
 /* Video Background Fitting */
 .video-bg {
     position: fixed;
@@ -26,17 +30,21 @@ body { background: #000000; color: var(--text-main); overflow-x: hidden; }
     width: 100%; height: 100%;
     background: radial-gradient(circle, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.8) 100%);
     z-index: -1;
+    pointer-events: none;
 }
 
 /* Home Circle Layout */
 .home-container {
     height: 100vh;
+    height: 100dvh; /* real visible height on mobile browsers */
     display: flex;
     justify-content: center;
     align-items: center;
+    overflow: hidden;
 }
 
 .circle-wrapper {
+    --r: 240px; /* overwritten from script.js */
     position: relative;
     width: 1px; height: 1px; /* Anchor point */
     display: flex;
@@ -44,24 +52,32 @@ body { background: #000000; color: var(--text-main); overflow-x: hidden; }
     align-items: center;
 }
 
-/* Vertical and Horizontal Cross Lines */
+/* Cross lines, sized to the circle and kept BEHIND the cards */
 .circle-wrapper::before, .circle-wrapper::after {
     content: '';
     position: absolute;
-    background: linear-gradient(to right, transparent, var(--glass-border), transparent);
-    z-index: 10;
+    z-index: 0;
+    pointer-events: none;
 }
-.circle-wrapper::before { width: 500px; height: 1px; }
-.circle-wrapper::after { width: 1px; height: 500px; background: linear-gradient(to bottom, transparent, var(--glass-border), transparent); }
+.circle-wrapper::before {
+    width: calc(var(--r) * 2 + 40px); height: 1px;
+    background: linear-gradient(to right, transparent, var(--glass-border), transparent);
+}
+.circle-wrapper::after {
+    width: 1px; height: calc(var(--r) * 2 + 40px);
+    background: linear-gradient(to bottom, transparent, var(--glass-border), transparent);
+}
 
 .album-card {
     position: absolute;
+    z-index: 1;
     width: 160px; height: 220px;
+    padding: 0;
     background: var(--glass);
+    -webkit-backdrop-filter: blur(15px);
     backdrop-filter: blur(15px);
     border: 1px solid var(--glass-border);
     border-radius: 15px;
-    cursor: pointer;
     transition: var(--transition);
     transform: translate(var(--x), var(--y));
     overflow: hidden;
@@ -69,60 +85,96 @@ body { background: #000000; color: var(--text-main); overflow-x: hidden; }
     flex-direction: column;
 }
 
-.album-card:hover {
+.album-card:hover,
+.album-card:focus-visible {
+    z-index: 2;
     transform: translate(var(--x), var(--y)) scale(1.1);
     border-color: var(--primary-blue);
     box-shadow: 0 0 30px rgba(58, 122, 254, 0.4);
 }
 
-.album-cover { width: 100%; height: 70%; object-fit: cover; }
-.album-info { 
-    padding: 15px; 
-    height: 30%; /* Ensure info area is contained */
+.album-cover { width: 100%; height: 68%; object-fit: cover; object-position: center 25%; display: block; }
+.album-info {
+    padding: 8px 10px;
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    justify-content: center; /* Center text vertically */
+    justify-content: center;
+    overflow: hidden;
 }
-.album-info p { font-size: 0.7rem; opacity: 0; transition: 0.3s; margin-top: 5px; color: #bbb; }
+.album-info h3 { font-size: 0.8rem; line-height: 1.2; font-weight: 600; }
+.album-info p { font-size: 0.7rem; opacity: 0; transition: 0.3s; margin-top: 4px; color: #bbb; }
 .album-card:hover .album-info p { opacity: 1; }
 
 /* Album View Grid */
 .view-container {
     min-height: 100vh;
+    min-height: 100dvh;
     padding: 100px 5% 50px;
-    background: rgba(0,0,0,0.7);
-    backdrop-filter: blur(20px);
-    z-index: 100;
+    background: rgba(0,0,0,0.85); /* solid-ish instead of a heavy blur: smoother on phones */
     position: relative;
+    z-index: 100;
+}
+
+.album-title {
+    text-align: center;
+    margin-bottom: 40px;
+    font-size: clamp(1.3rem, 5vw, 2rem);
+    line-height: 1.3;
 }
 
 .photo-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
     gap: 20px;
     max-width: 1200px;
     margin: 0 auto;
 }
 
 .photo-item {
+    position: relative;
+    display: block;
+    padding: 0;
     background: var(--glass);
     border-radius: 10px;
     overflow: hidden;
     border: 1px solid var(--glass-border);
-    cursor: pointer;
 }
 
-.photo-item img, .photo-item video { width: 100%; height: 250px; object-fit: cover; }
+.photo-item img, .photo-item video {
+    display: block;
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+    object-position: center 25%; /* keeps faces in frame when cropping */
+    background: #111;
+}
 .photo-desc { padding: 15px; font-size: 0.85rem; }
+
+/* Play icon on video thumbnails */
+.play-badge {
+    position: absolute;
+    top: 105px; left: 50%;
+    transform: translateX(-50%);
+    width: 44px; height: 44px;
+    line-height: 44px;
+    text-align: center;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid var(--glass-border);
+    font-size: 1rem;
+    pointer-events: none;
+}
 
 /* Back Button */
 .back-btn {
     position: fixed;
-    top: 30px; left: 30px;
+    top: 20px; left: 20px;
     padding: 10px 20px;
     background: var(--primary-blue);
-    border: none; color: white;
-    border-radius: 5px; cursor: pointer;
+    color: white;
+    border-radius: 5px;
     z-index: 250;
 }
 
@@ -134,11 +186,53 @@ body { background: #000000; color: var(--text-main); overflow-x: hidden; }
     display: flex; justify-content: center; align-items: center;
     z-index: 1000;
 }
-.modal-content { max-width: 90%; max-height: 90%; position: relative; }
-.modal img, .modal video { width: 100%; max-height: 80vh; border-radius: 10px; }
-.modal-close { position: absolute; top: -50px; right: 0; font-size: 2rem; cursor: pointer; }
+.modal-content {
+    max-width: 90%; max-height: 90%;
+    position: relative;
+    display: flex; flex-direction: column; align-items: center;
+}
+.modal img, .modal video {
+    width: auto;
+    max-width: 100%;
+    max-height: 78vh;
+    max-height: 78dvh;
+    object-fit: contain; /* no more stretched portrait photos */
+    display: block;
+    border-radius: 10px;
+}
+.modal-caption { margin-top: 15px; text-align: center; }
+.modal-count { margin-top: 10px; font-size: 0.8rem; opacity: 0.6; }
+
+.modal-close {
+    position: fixed;
+    top: 12px; right: 16px;
+    padding: 10px 14px;
+    font-size: 2rem;
+    line-height: 1;
+    z-index: 1002;
+}
+.modal-nav {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 16px 14px;
+    font-size: 1.6rem;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    z-index: 1001;
+}
+.modal-nav.prev { left: 8px; }
+.modal-nav.next { right: 8px; }
 
 @media (max-width: 768px) {
-    .album-card { width: 120px; height: 160px; }
-    .album-info p { opacity: 1; font-size: 0.6rem; }
+    .album-card { width: 100px; height: 140px; border-radius: 12px; }
+    .album-info { padding: 6px; }
+    .album-info h3 { font-size: 0.6rem; }
+    .album-info p { opacity: 1; font-size: 0.55rem; }
+    .view-container { padding-top: 80px; }
+    .back-btn { top: 14px; left: 14px; padding: 8px 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .album-card { transition: none; }
 }
