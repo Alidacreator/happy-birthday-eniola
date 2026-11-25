@@ -35,12 +35,36 @@ button:focus-visible { outline: 2px solid var(--primary-blue); outline-offset: 3
 
 /* Home Circle Layout */
 .home-container {
+    --cw: 160px; --ch: 220px; --gap: 14px; /* overwritten from script.js */
     height: 100vh;
     height: 100dvh; /* real visible height on mobile browsers */
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
+    gap: var(--gap);
     overflow: hidden;
+}
+
+/* Holds the circle; its height is set from script.js */
+.ring-area {
+    width: 100%;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Extra albums that sit under the circle */
+.bottom-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+.bottom-row .album-card {
+    position: relative;
+    --x: 0px; --y: 0px;
 }
 
 .circle-wrapper {
@@ -71,7 +95,7 @@ button:focus-visible { outline: 2px solid var(--primary-blue); outline-offset: 3
 .album-card {
     position: absolute;
     z-index: 1;
-    width: 160px; height: 220px;
+    width: var(--cw, 160px); height: var(--ch, 220px);
     padding: 0;
     background: var(--glass);
     -webkit-backdrop-filter: blur(15px);
@@ -225,7 +249,7 @@ button:focus-visible { outline: 2px solid var(--primary-blue); outline-offset: 3
 .modal-nav.next { right: 8px; }
 
 @media (max-width: 768px) {
-    .album-card { width: 100px; height: 140px; border-radius: 12px; }
+    .album-card { border-radius: 12px; }
     .album-info { padding: 6px; }
     .album-info h3 { font-size: 0.6rem; }
     .album-info p { opacity: 1; font-size: 0.55rem; }

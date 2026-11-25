@@ -76,6 +76,28 @@ const GALLERY_CONFIG = {
                 { type: "video", url: "./Assets1/5/Snapchat-1404380966.mp4" },
                 { type: "video", url: "./Assets1/5/Snapchat-1831755927.mp4" }
             ]
+        },
+        {
+            id: 6,
+            row: "bottom",
+            title: "  ❤️ RN/RM ❤️",
+            cover: "./Assets1/6/IMG-20261124-WA0013.jpg",
+            photos: [
+               { type: "image", url: "./Assets1/6/IMG-20261124-WA0009.jpg" },
+               { type: "image", url: "./Assets1/6/IMG-20261124-WA0011.jpg" },
+               { type: "image", url: "./Assets1/6/IMG-20261124-WA0013.jpg" },
+               { type: "image", url: "./Assets1/6/IMG-20261124-WA0014.jpg" },
+               { type: "image", url: "./Assets1/6/IMG-20261124-WA0015.jpg" },
+               { type: "image", url: "./Assets1/6/IMG-20261125-WA0015.jpg" },
+               { type: "image", url: "./Assets1/6/IMG-20261125-WA0018.jpg" },
+               { type: "image", url: "./Assets1/6/IMG-20261125-WA0019.jpg" },
+               { type: "image", url: "./Assets1/6/IMG-20261125-WA0023.jpg" },
+               { type: "image", url: "./Assets1/6/IMG-20261125-WA0024.jpg" },
+               { type: "image", url: "./Assets1/6/IMG-20261125-WA0025.jpg" },
+               { type: "image", url: "./Assets1/6/IMG-20261125-WA0026.jpg" },
+               { type: "image", url: "./Assets1/6/IMG-20261125-WA0027.jpg" },
+               { type: "image", url: "./Assets1/6/IMG-20261125-WA0028.jpg" }
+            ]
         }
     ]
 };
@@ -94,6 +116,30 @@ const useViewport = () => {
         };
     }, []);
     return size;
+};
+
+// Works out card size and circle radius so the circle AND the bottom row
+// both fit on one screen (no scrolling). Cards shrink a little on short screens.
+const computeLayout = (w, h, ringCount, bottomCount) => {
+    const baseW = w < 768 ? 100 : 160;
+    const baseH = w < 768 ? 140 : 220;
+    const pad = 40;   // total top + bottom breathing room
+    const gap = 14;   // space between circle and bottom row
+    const sinN = Math.sin(Math.PI / Math.max(ringCount, 3));
+    let out = null;
+    for (let s = 1; s >= 0.5; s -= 0.05) {
+        const cw = Math.round(baseW * s);
+        const ch = Math.round(baseH * s);
+        const rMin = (cw + 8) / (2 * sinN);                  // cards must not overlap
+        const rW = (w - 16 - cw) / 2;                        // must fit the width
+        const rH = bottomCount ? (h - pad - gap - 2 * ch) / 2 // must fit the height
+                               : (h - pad - ch) / 2;
+        const r = Math.min(240, rW, rH);
+        const rowW = bottomCount * cw + Math.max(bottomCount - 1, 0) * 12;
+        out = { cw, ch, gap, r: Math.max(r, rMin) };
+        if (r >= rMin && rowW <= w - 16) return out;
+    }
+    return out;
 };
 
 // Album <-> URL hash, so the phone's back button returns to the circle
@@ -151,8 +197,10 @@ const App = () => {
         };
     }, [mediaIndex, showNext, showPrev]);
 
-    // Circle radius fits whatever screen is in use
-    const radius = Math.max(90, Math.min(240, w * 0.35, h * 0.3));
+    // Split albums: ring (circle) vs bottom row, then size everything to fit the screen
+    const ringAlbums = GALLERY_CONFIG.albums.filter(a => a.row !== 'bottom');
+    const bottomAlbums = GALLERY_CONFIG.albums.filter(a => a.row === 'bottom');
+    const { cw, ch, gap, r: radius } = computeLayout(w, h, ringAlbums.length, bottomAlbums.length);
 
     const getCircleStyles = (index, total) => {
         const angle = (index / total) * 2 * Math.PI - Math.PI / 2; // start at 12 o'clock
@@ -160,6 +208,22 @@ const App = () => {
         const y = Math.round(Math.sin(angle) * radius);
         return { '--x': `${x}px`, '--y': `${y}px` };
     };
+
+    const renderCard = (album, style) => (
+        <button
+            type="button"
+            key={album.id}
+            className="album-card"
+            style={style}
+            onClick={() => openAlbum(album)}
+        >
+            <img src={album.cover} className="album-cover" alt="" loading="lazy" />
+            <div className="album-info">
+                <h3>{album.title}</h3>
+                {album.description && <p>{album.description}</p>}
+            </div>
+        </button>
+    );
 
     const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
     const onTouchEnd = (e) => {
@@ -172,25 +236,23 @@ const App = () => {
     return (
         <div className="app-wrapper">
             {!activeAlbum ? (
-                /* HOMEPAGE: THE CIRCLE */
-                <div className="home-container">
-                    <div className="circle-wrapper" style={{ '--r': `${radius}px` }}>
-                        {GALLERY_CONFIG.albums.map((album, i) => (
-                            <button
-                                type="button"
-                                key={album.id}
-                                className="album-card"
-                                style={getCircleStyles(i, GALLERY_CONFIG.albums.length)}
-                                onClick={() => openAlbum(album)}
-                            >
-                                <img src={album.cover} className="album-cover" alt="" loading="lazy" />
-                                <div className="album-info">
-                                    <h3>{album.title}</h3>
-                                    {album.description && <p>{album.description}</p>}
-                                </div>
-                            </button>
-                        ))}
+                /* HOMEPAGE: THE CIRCLE + BOTTOM ROW */
+                <div
+                    className="home-container"
+                    style={{ '--cw': `${cw}px`, '--ch': `${ch}px`, '--gap': `${gap}px` }}
+                >
+                    <div className="ring-area" style={{ height: 2 * radius + ch }}>
+                        <div className="circle-wrapper" style={{ '--r': `${radius}px` }}>
+                            {ringAlbums.map((album, i) =>
+                                renderCard(album, getCircleStyles(i, ringAlbums.length))
+                            )}
+                        </div>
                     </div>
+                    {bottomAlbums.length > 0 && (
+                        <div className="bottom-row">
+                            {bottomAlbums.map(album => renderCard(album))}
+                        </div>
+                    )}
                 </div>
             ) : (
                 /* DETAIL VIEW: THE GRID */
